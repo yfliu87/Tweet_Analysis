@@ -3,9 +3,11 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 from pyspark import SparkConf, SparkContext
+from stop_words import get_stop_words
 import json
 
-separator = [",",":","@"," ","!","#","$","%","*","...","(",")","~",""]
+separator = [",",":","@"," ","!","#","$","%","*","...","(",")","~","","-"]
+stopWords = get_stop_words('english') 
 
 def readline(line):
 	try:
@@ -23,7 +25,8 @@ def analysis():
 	filtered_rdd = text_rdd.filter(lambda line: line["lang"] == "en")
 	split_rdd = filtered_rdd.flatMap(lambda line: line["text"].split(" "))
 	no_separator_rdd = split_rdd.filter(lambda item: item not in separator)
-	map_rdd = no_separator_rdd.map(lambda item: (item, 1))
+	no_stop_word_rdd = no_separator_rdd.filter(lambda item: item not in stopWords)
+	map_rdd = no_stop_word_rdd.map(lambda item: (item, 1))
 	output = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda x: -x[1])
 
 	for (word, count) in output:

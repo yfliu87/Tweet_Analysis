@@ -3,6 +3,7 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 from pyspark import SparkConf, SparkContext
+separator = [",",":","@"," ","!","#","$","%","*","...","(",")","~",""]
 
 def analysis():
 	conf = SparkConf().setAppName("twitter")
@@ -14,13 +15,14 @@ def analysis():
 	text_rdd = textFile.map(lambda line: json.loads(line)).filter(lambda line: "text" in line)
 	filtered_rdd = text_rdd.filter(lambda line: line["lang"] == "en")
 	split_rdd = filtered_rdd.flatMap(lambda line: line["text"].split(" "))
-	map_rdd = split_rdd.map(lambda item: (item, 1))
+	no_separator_rdd = split_rdd.filter(lambda item: item not in separator)
+	map_rdd = no_separator_rdd.map(lambda item: (item, 1))
 	output = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda x: -x[1])
 
 	for (word, count) in output:
 		print ("%s: %i" %(word, count))
 
-		sc.stop()
+	sc.stop()
 
 if __name__ == '__main__':
 	analysis()

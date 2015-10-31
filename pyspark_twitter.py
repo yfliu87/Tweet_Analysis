@@ -13,7 +13,7 @@ from operator import add
 filtered_rdd = textFile.map(lambda line: json.loads(line)).filter(lambda line: "text" in line)
 split_rdd = filtered_rdd.flatMap(lambda line: line["text"].split(" "))
 map_rdd = split_rdd.map(lambda item: (item, 1))
-output = map_rdd.reduceByKey(add).collect()
+output = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda x: -x[1])
 
 for (word, count) in output:
 	print ("%s: %i" %(word, count))

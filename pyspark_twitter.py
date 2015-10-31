@@ -11,7 +11,8 @@ def analysis():
 
 	import json
 	from operator import add
-	filtered_rdd = textFile.map(lambda line: json.loads(line)).filter(lambda line: "text" in line)
+	text_rdd = textFile.map(lambda line: json.loads(line)).filter(lambda line: "text" in line)
+	filtered_rdd = text_rdd.filter(lambda line: line["lang"] == "en")
 	split_rdd = filtered_rdd.flatMap(lambda line: line["text"].split(" "))
 	map_rdd = split_rdd.map(lambda item: (item, 1))
 	output = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda x: -x[1])

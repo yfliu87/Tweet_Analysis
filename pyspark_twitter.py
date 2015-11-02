@@ -26,6 +26,7 @@ def analysis():
 	cached_rdd = english_rdd.cache()
 	calculate_popular_words(cached_rdd)
 	sentiment_analysis(cached_rdd)
+	location_analysis(cached_rdd)
 
 	sc.stop()
 
@@ -84,6 +85,27 @@ def get_sentiment(text, positive_word_bag, negative_word_bag):
 	
 	return sentiment
 
+
+def location_analysis(rdd):
+	from operator import add
+	place_rdd = rdd.filter(lambda item: "place" in item)	
+	country_rdd = place_rdd.map(lambda item: (get_country(item),1))
+	top_ten_country = country_rdd.reduceByKey(add).takeOrdered(10, key=lambda x:-x[1])
+
+	for (country, count) in top_ten_country:
+		print "\ncountry: ", country
+		print "tweets: ", count
+
+
+def get_country(tweet):
+	if not tweet["place"]:
+		return "NA"
+	elif tweet["place"]["country_code"]:
+		return tweet["place"]["country_code"]
+	elif tweet["place"]["country"]:
+		return tweet["place"]["country"]
+	else:
+		return "NA"
 
 
 if __name__ == '__main__':

@@ -46,14 +46,13 @@ def calculate_popular_words(rdd):
 def sentiment_analysis(rdd):
 	positive_word_bag = read_words(positive_file)
 	negative_word_bag = read_words(negative_file)
-	tweet_sent_rdd = rdd.map(lambda item: (item['text'], get_sentiment(item['text'])))
+	tweet_sent_rdd = rdd.map(lambda item: (item['text'], get_sentiment(item['text'], positive_word_bag, negative_word_bag)))
 	sent_tweet_rdd = tweet_sent_rdd.map(lambda item: swap(item))
 	sentiment_tweet = sent_tweet_rdd.groupByKey().takeOrdered(10, key=lambda x: -x[0])
 
 	for (sent, tweets) in sentiment_tweet:
-		print "sentiment value: ", sent
-		for tweet in tweets:
-			print "\t" + tweet
+		print "\nsentiment value: ", sent
+		print "tweets count: ", len(tweets)
 	
 
 def read_words(word_file):
@@ -61,7 +60,7 @@ def read_words(word_file):
 	words = set()
 
 	for word in reader:
-		words.add(word)
+		words.add(word.split("\n")[0])
 
 	return words
 	
@@ -70,18 +69,19 @@ def swap(item):
 	return (item[1], item[0])
 
 
-def get_sentiment(text):
+def get_sentiment(text, positive_word_bag, negative_word_bag):
 	words = text.split(" ")
 	
 	sentiment = 0
 	for word in words:
-		sentiment += calculate_sentiment(word)
+		if word in positive_word_bag:
+			sentiment += 1 
+
+		if word in negative_word_bag:
+			sentiment -= 1
 	
 	return sentiment
 
-def calculate_sentiment(word):
-	#to be updated with senti word dictionary
-	return 1
 
 
 if __name__ == '__main__':

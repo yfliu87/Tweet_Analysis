@@ -98,15 +98,39 @@ def location_analysis(rdd):
 
 
 def get_country(tweet):
-	if not tweet["place"]:
-		return "NA"
-	elif tweet["place"]["country_code"]:
-		return tweet["place"]["country_code"]
-	elif tweet["place"]["country"]:
-		return tweet["place"]["country"]
-	else:
+	country = None 
+
+	if tweet["place"] and tweet["place"]["country"]:
+		country = tweet["place"]["country"]
+
+	if country: 
+		return country
+
+	if tweet["coordinates"]:
+		country = search_by_coordinate(tweet["coordinates"]["coordinates"])
+
+	return country
+
+
+def search_by_coordinate(coordinates):
+	latitude = coordinates[0]
+	longitude = coordinates[1]
+
+	location_json = search_google_api(latitude, longitude)
+	return extract_country(json.loads(location_json))
+
+def search_google_api(latitude,longitude):
+	import urllib2
+	url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=%s,%s&sensor=true' % (latitude,longitude)
+	return urllib2.urlopen(url).read()
+
+
+def extract_country(location_json):
+	if location_json["status"] == "ZERO_RESULTS":
 		return "NA"
 
+	results = location_json["results"]
+	return results[-1]["address_components"][0]["long_name"]
 
 if __name__ == '__main__':
 	analysis()

@@ -23,8 +23,7 @@ def analysis():
 	textFile = sc.textFile("hdfs://quickstart.cloudera:8020/user/cloudera/yfliu/twitter_10000.json")
 
 	english_rdd = textFile.map(lambda line: readline(line)).filter(lambda line: "lang" in line and line["lang"] == "en")
-	text_rdd= english_rdd.filter(lambda line: "text" in line)
-	cached_rdd = text_rdd.cache()
+	cached_rdd = english_rdd.cache()
 	calculate_popular_words(cached_rdd)
 	sentiment_analysis(cached_rdd)
 
@@ -33,7 +32,8 @@ def analysis():
 
 def calculate_popular_words(rdd):
 	from operator import add
-	split_rdd = rdd.flatMap(lambda line: line["text"].split(" "))
+	text_rdd= rdd.filter(lambda line: "text" in line)
+	split_rdd = text_rdd.flatMap(lambda line: line["text"].split(" "))
 	no_separator_rdd = split_rdd.filter(lambda item: item not in separator)
 	no_stop_word_rdd = no_separator_rdd.filter(lambda item: item not in stopWords)
 	map_rdd = no_stop_word_rdd.map(lambda item: (item, 1))
@@ -46,7 +46,8 @@ def calculate_popular_words(rdd):
 def sentiment_analysis(rdd):
 	positive_word_bag = read_words(positive_file)
 	negative_word_bag = read_words(negative_file)
-	tweet_sent_rdd = rdd.map(lambda item: (item['text'], get_sentiment(item['text'], positive_word_bag, negative_word_bag)))
+	text_rdd= rdd.filter(lambda line: "text" in line)
+	tweet_sent_rdd = text_rdd.map(lambda item: (item["text"], get_sentiment(item["text"], positive_word_bag, negative_word_bag)))
 	sent_tweet_rdd = tweet_sent_rdd.map(lambda item: swap(item))
 	sentiment_tweet = sent_tweet_rdd.groupByKey().takeOrdered(10, key=lambda x: -x[0])
 
@@ -71,9 +72,10 @@ def swap(item):
 
 def get_sentiment(text, positive_word_bag, negative_word_bag):
 	words = text.split(" ")
-	
+	filtered_words = [word for word in words if word not in separator]	
+
 	sentiment = 0
-	for word in words:
+	for word in filtered_words:
 		if word in positive_word_bag:
 			sentiment += 1 
 

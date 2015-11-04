@@ -134,14 +134,21 @@ def extract_country(location_json):
 	return results[-1]["address_components"][0]["long_name"]
 
 def time_series_analysis(rdd):
-	map_rdd = rdd.map(lambda item: (read_timestamp(item), 1))
-	reduced_rdd = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda item: -item[1])
+	minute_rdd = rdd.map(lambda item: (read_timestamp_in_minute(item), 1))
+	top_ten_minute_rdd = minute_rdd.reduceByKey(add).takeOrdered(10, key=lambda item: -item[1])
 
-	for date, count in reduced_rdd:
+	for date, count in top_ten_minute_rdd:
 		print "\ndate: ", date
 		print "tweets: ",count 
 
-def read_timestamp(tweet):
+	hour_rdd = rdd.map(lambda item: (read_timestamp_in_hour(item), 1))
+	top_ten_hour_rdd = hour_rdd.reduceByKey(add).takeOrdered(10, key=lambda item: -item[1])
+
+	for date, count in top_ten_hour_rdd:
+		print "\ndate: ", date
+		print "tweets: ",count 
+
+def read_timestamp_in_minute(tweet):
 	if "created_at" not in tweet:
 		return "NA"
 
@@ -150,6 +157,14 @@ def read_timestamp(tweet):
 	time = items[1] + " " + items[2] + " " + hour_minute_second[0] + ":" + hour_minute_second[1] + " " + items[5]
 	return time
 
+def read_timestamp_in_hour(tweet):
+	if "created_at" not in tweet:
+		return "NA"
+
+	items = tweet["created_at"].split(" ")
+	hour_minute_second = items[3].split(":")
+	time = items[1] + " " + items[2] + " " + hour_minute_second[0] + " " + items[5]
+	return time
 
 if __name__ == '__main__':
 	analysis()

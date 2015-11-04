@@ -4,6 +4,7 @@ sys.setdefaultencoding('utf-8')
 
 from pyspark import SparkConf, SparkContext
 from stop_words import get_stop_words
+from operator import add
 import json
 
 separator = [",",":","@"," ","!","#","$","%","*","...","(",")","~","","-"]
@@ -27,6 +28,7 @@ def analysis():
 	calculate_popular_words(cached_rdd)
 	sentiment_analysis(cached_rdd)
 	location_analysis(cached_rdd)
+	time_series_analysis(cached_rdd)
 
 	sc.stop()
 
@@ -87,7 +89,6 @@ def get_sentiment(text, positive_word_bag, negative_word_bag):
 
 
 def location_analysis(rdd):
-	from operator import add
 	place_rdd = rdd.filter(lambda item: "place" in item)	
 	country_rdd = place_rdd.map(lambda item: (get_country(item),1))
 	top_ten_country = country_rdd.reduceByKey(add).takeOrdered(10, key=lambda x:-x[1])
@@ -131,6 +132,24 @@ def extract_country(location_json):
 
 	results = location_json["results"]
 	return results[-1]["address_components"][0]["long_name"]
+
+def time_series_analysis(rdd):
+	map_rdd = rdd.map(lambda item: (read_timestamp(item), 1))
+	reduced_rdd = map_rdd.reduceByKey(add).takeOrdered(10, key=lambda item: -item[1])
+
+	for date, count in reduced_rdd:
+		print "\ndate: ", date
+		print "tweets: ",count 
+
+def read_timestamp(tweet):
+	if "created_at" not in tweet:
+		return "NA"
+
+	items = tweet["created_at"].split(" ")
+	hour_minute_second = items[3].split(":")
+	time = items[1] + " " + items[2] + " " + hour_minute_second[0] + ":" + hour_minute_second[1] + " " + items[5]
+	return time
+
 
 if __name__ == '__main__':
 	analysis()

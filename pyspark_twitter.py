@@ -23,6 +23,8 @@ def analysis():
 	sc = SparkContext(conf = conf)
 	textFile = sc.textFile("hdfs://quickstart.cloudera:8020/user/cloudera/yfliu/twitter_10000.json")
 
+	calculate_deleted_tweet(textFile)
+
 	english_rdd = textFile.map(lambda line: readline(line)).filter(lambda line: "lang" in line and line["lang"] == "en")
 	cached_rdd = english_rdd.cache()
 	calculate_popular_words(cached_rdd)
@@ -31,6 +33,12 @@ def analysis():
 	time_series_analysis(cached_rdd)
 
 	sc.stop()
+
+
+def calculate_deleted_tweet(rdd):
+	deleted_rdd = rdd.map(lambda line: readline(line)).filter(lambda line: "delete" in line)
+	result = deleted_rdd.map(lambda line: ("delete", 1)).reduceByKey(add).collect()
+	print "\ndeleted tweets: ", result
 
 
 def calculate_popular_words(rdd):
